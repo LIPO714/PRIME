@@ -12,7 +12,7 @@ import argparse
 def parse_args():
     parser = argparse.ArgumentParser(description="argparse")
 
-    parser.add_argument("--exp_name", type=str, default="exp_12_new_structure_impute&(mtand&mvand)_linear_decompos_0624")
+    parser.add_argument("--exp_name", type=str, default="pretrain_test")
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--notes_order", type=str, default='Last')
