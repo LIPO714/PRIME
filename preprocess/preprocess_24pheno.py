@@ -99,7 +99,7 @@ if __name__ == '__main__':
     train_data_path = '../data/train_ts_note_data.pkl'
     test_data_path = '../data/test_ts_note_data.pkl'
     cut_time = '24'
-    percent = 0.25
+    percent = 1.0  # 0.1 0.01
     train_val_percent = 0.8
     out_train_data_path = '../data/24pheno/train_24pheno_'+str(percent)+'.pkl'
     out_val_data_path = '../data/24pheno/val_24pheno_'+str(percent)+'.pkl'
