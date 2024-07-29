@@ -66,10 +66,7 @@ class PretrainDataset(Dataset):
         demogra = self.now_data['demographics']
         demogra = torch.tensor(demogra).float().to(self.device)
 
-        # 1. 读取数据
-        # print("data 1...")
         ts_data = torch.tensor(self.now_data['ts_data']).float()
-        # print("dataset ts_data.type:", ts_data.dtype)
         ts_mask = torch.tensor(self.now_data['ts_mask']).float()
         ts_tt = torch.tensor(self.now_data['ts_tt']).float()
         ts_tau = torch.tensor(self.now_data['ts_tau']).float()
@@ -77,52 +74,19 @@ class PretrainDataset(Dataset):
         note_tt = self.now_data['note_tt']
         note_tau = self.now_data['note_tau']
 
-        # 2. 选取48小时的窗口【时间序列48小时；文本72小时, 最后时刻对齐】
-        # print("data 2...")
         if self.need_cut:
             ts_data, ts_tt, ts_mask, ts_tau, note_data, note_tt, note_tau = self.cut_window(ts_data, ts_tt, ts_mask, ts_tau, note_data, note_tt, note_tau)
 
-        # print("note num:", len(note_tt))
-
-        # print("ts_data.shape:", ts_data.shape)
-        # print("ts_mask.shape:", ts_mask.shape)
-        # print("ts_tt.shape:", ts_tt.shape)
-        # print("ts_tt:", ts_tt)
-        # print("ts_tau.shape:", ts_tau.shape)
-        #
-        # print("note_data.shape:", len(note_data))
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt)
-        # print("note_tau:", note_tau)
-
-        # 3. 选取5段note（随机选取）计算note的tau
-        # print("data 3...")
         note_data, note_tt, note_tau, note_mask = self.choose_note(note_data, note_tt, note_tau)
 
-        # print("---------3-----------")
-        # print("note_data.shape:", len(note_data))
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt)
-        # print("note_tau:", note_tau)
-        # print("note_mask:", note_mask)
-
-        # 4. 将note补0-->tensor
-        # print("data 4...")
         note_data = pad_sequence(note_data, batch_first=True, padding_value=self.pad).to(self.device)
         note_tt = torch.tensor(note_tt).float()
         note_tau = torch.tensor(note_tau).float()
-
-        # print("ts_data:", ts_data.shape)
-        # print("note_data:", note_data.shape)
-        # print("ts_tt:", ts_tt)
-        # print("note_tt:", note_tt)
 
         note_attention_mask = torch.zeros_like(note_data)
         note_attention_mask[note_data != self.pad] = 1
         note_attention_mask = note_attention_mask.to(self.device)
 
-        # 5. 还原片段index：随机生成哪些TS连续时刻被mask；哪个note被还原
-        # print("data 5...")
         ts_len = ts_tt.shape[0]
         ts_restore_tt_start_index = random.randint(0, ts_len-self.ts_restore_len)
         ts_restore_tt_end_index = ts_restore_tt_start_index + self.ts_restore_len
@@ -132,20 +96,15 @@ class PretrainDataset(Dataset):
 
         restore_index = torch.tensor([ts_restore_tt_start_index, ts_restore_tt_end_index, note_restore_index], dtype=torch.int).to(self.device)  # [ts_start, ts_end, note_index]
 
-        # 6. restore ts label: 生成还原片段的真值作为标签，现在不生成的话，后面数据增强可能改变数值
-        # print("data 6...")
         restore_ts_label = ts_data[ts_restore_tt_start_index:ts_restore_tt_end_index]  # 3, K
         restore_ts_mask = ts_mask[ts_restore_tt_start_index:ts_restore_tt_end_index]  # 3, K
 
-        # 7. query tt: cont tt + restore tt(ts tt + note tt)
         restore_ts_tt = ts_tt[ts_restore_tt_start_index:ts_restore_tt_end_index]  # 3
         restore_note_tt = note_tt[note_restore_index]  # 1
         cont_tt = self.choose_contrastive_tt(ts_tt, note_tt)  # 3
 
-        # 8. 将ts_data, ts_tt, ts_mask, ts_tau去除restore部分
         ts_data, ts_tt, ts_mask, ts_tau = self.remove_ts_restore_part(ts_data, ts_tt, ts_mask, ts_tau, restore_index)
 
-        # 9. imputation
         cont_tt_impute_data, cont_tt_impute_mask = self.impute_ts_data(cont_tt, ts_data, ts_mask, ts_tt)
         restore_tt_impute_data, restore_tt_impute_mask = self.impute_ts_data(restore_ts_tt, ts_data, ts_mask, ts_tt)
 
@@ -166,7 +125,7 @@ class PretrainDataset(Dataset):
             start_index = 0
             end_index = ts_tt.shape[0]
             ts_start_time = float(ts_tt[0])
-            if end_index - start_index > max_ts_len:  # 若时序数据太长，则随机选出150个
+            if end_index - start_index > max_ts_len:
                 select_index = self.random_select_index(start_index, end_index, max_ts_len)
 
                 ts_data = ts_data[select_index, :]
@@ -181,42 +140,33 @@ class PretrainDataset(Dataset):
         note_end_time_expand = 0
         note_expand_time = 12
         window_expand_time = 6
-        # print("note_tt:", note_tt)
-        # print("ts_tt:", ts_tt)
+
         times = 0
         while True:
             times += 1
-            # print("now window len:", now_window_len)
             if times >= 500:
                 break
             end_time = random.randint(tt_min + now_window_len, tt_max)
             ts_start_time = end_time - now_window_len
             note_start_time = ts_start_time - note_start_time_expand
             note_end_time = end_time + note_end_time_expand
-            # print("ts start time:", ts_start_time)
-            # print("ts end time:", end_time)
-            # print("note start time:", note_start_time)
-            # print("note end time:", note_end_time)
-            # print("now window len:", now_window_len)
 
             start_note_index = np.sum(note_tt < note_start_time)
             end_note_index = np.sum(note_tt <= note_end_time)
             if end_note_index - start_note_index < 3:
-                # 如果window内note数量太少，要重新选
                 note_start_time_expand += (note_expand_time / 2)
                 note_end_time_expand += note_expand_time
-                # print("note num too less...")
                 continue
 
             # ts:
             start_ts_index = torch.sum(ts_tt < ts_start_time)
             end_ts_index = torch.sum(ts_tt <= end_time)
-            if end_ts_index - start_ts_index <= 2 * self.ts_restore_len:  # 若小于2倍需要填补的，则需要重新选择
+            if end_ts_index - start_ts_index <= 2 * self.ts_restore_len:
                 now_window_len += window_expand_time
                 if tt_min + now_window_len > tt_max:
                     now_window_len = tt_max - tt_min
                 continue
-            if end_ts_index - start_ts_index > max_ts_len:  # 若时序数据太长，则随机选出150个
+            if end_ts_index - start_ts_index > max_ts_len:
                 select_index = self.random_select_index(start_ts_index, end_ts_index, max_ts_len)
 
                 ts_data = ts_data[select_index, :]
@@ -239,19 +189,12 @@ class PretrainDataset(Dataset):
             return ts_data, ts_tt, ts_mask, ts_tau, note_data, note_tt, note_tau
 
     def random_select_index(self, start_index, end_index, num_to_select):
-        # 生成所有可能的索引列表
         all_indexes = list(range(start_index, end_index))
-
-        # 从所有索引中随机选择num_to_select个索引
         selected_indexes = random.sample(all_indexes, num_to_select)
-
-        # 对选择的索引进行排序
         selected_indexes.sort()
-
         return selected_indexes
 
     def choose_note(self, note_data, note_tt, note_tau):
-        # 随机连续选取5段；若不够5段，则需要补充
         length = self.note_num
         note_len = len(note_data)
         note_mask = torch.ones(length).float()
@@ -291,13 +234,10 @@ class PretrainDataset(Dataset):
         return cont_tt
 
     def impute_ts_data(self, query_ts_tt, ts_data, ts_mask, ts_tt):
-        # 1. 拆成离散型和连续型的
         continue_data = ts_data[:, :self.continue_dim]
 
         continue_data_mask = ts_mask[:, :self.continue_dim]
 
-        # 2. 分别进行插值
-        # continue date
         if self.conti_impute_type == "linear":
             query_continue_data_plus, query_ts_dt_plus, query_continue_mask_plus = impute_ts(query_ts_tt, continue_data, continue_data_mask, ts_tt, sort="+")
             query_continue_data_minus, query_ts_dt_minus, query_continue_mask_minus = impute_ts(query_ts_tt, continue_data, continue_data_mask, ts_tt, sort="-")
@@ -375,12 +315,7 @@ class PretrainDataset(Dataset):
 def pretrain_collate_fn(batch):
     names, demogras, ts_datas, ts_tts, ts_masks, ts_taus, note_datas, note_tts, note_masks, note_taus, note_attention_masks, restore_indexs, restore_ts_labels, restore_ts_masks, query_ts_tt, query_note_tt, query_ts_data, query_ts_mask = zip(*batch)
 
-    # 转换为列表
     names = list(names)  # list
-    # note_datas = list(note_datas)
-    # note_tts = list(note_tts)
-    # note_masks = list(note_masks)
-    # note_taus = list(note_taus)
 
     demogras = torch.stack(demogras)  # torch
     device = demogras.device
@@ -390,12 +325,8 @@ def pretrain_collate_fn(batch):
     ts_taus = pad_sequence(ts_taus, batch_first=True, padding_value=0).to(device)  # torch
 
     note_datas = list(note_datas)
-    # print("note_datas.shape:", len(note_datas))
 
     note_attention_masks = list(note_attention_masks)
-    # print("note_datas_attention_mask.shape:", note_datas_attention_mask)
-
-    # print("note token type:", note_token_type.shape)
 
     note_tts = torch.stack(note_tts).to(device)
     note_taus = torch.stack(note_taus).to(device)
@@ -410,33 +341,26 @@ def pretrain_collate_fn(batch):
     query_ts_data = torch.stack(query_ts_data).to(device)
     query_ts_mask = torch.stack(query_ts_mask).to(device)
 
-    # 1. note转成batch
-    # 2. 对齐ts数据
-    # 3. 转成tensor.to（device）
-
     return names, demogras, ts_datas, ts_tts, ts_masks, ts_taus, note_datas, note_attention_masks, note_tts, note_taus, note_masks, restore_indexs, restore_ts_labels, restore_ts_masks, query_ts_tt, query_note_tt, query_ts_data, query_ts_mask
 
 
 if __name__ == '__main__':
 
-    from all_exps.pretrain_12_args_config import parse_args
+    from all_exps.pretrain_args_config import parse_args
 
     args = parse_args()
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    seed_value = 68  # 可以替换为任何你想要的整数种子值
+    seed_value = 68
     random.seed(seed_value)
     ts_restore_len = 3
     contrastive_num = 3
 
-    # 创建CustomDataset实例
     dataset = PretrainDataset(args, data_path='../data/pretrain.pkl', device=device, note_length=512, note_num=5, bert="bioLongformer", ts_restore_len=ts_restore_len, contrastive_num=contrastive_num)
 
-    # 创建DataLoader实例，并使用自定义的collate_fn函数
     dataloader = DataLoader(dataset, batch_size=3, shuffle=True, collate_fn=pretrain_collate_fn)
 
-    # 使用DataLoader迭代数据
     for index, batch in enumerate(dataloader):
         name, demogra, ts_data, ts_tt, ts_mask, ts_tau, note_data, note_attention_mask, note_tt, note_tau, note_mask, restore_index, restore_ts_label, restore_ts_mask, query_ts_tt, query_note_tt, query_ts_data, query_ts_mask = batch
         if torch.isnan(query_ts_data).any().item():
@@ -445,33 +369,4 @@ if __name__ == '__main__':
             break
         print(index)
 
-        # print(query_ts_data[0])
-        # print(query_ts_mask[0])
         print("note attention mask:", note_attention_mask[0])
-        # print(len(note_data))
-        # print("ts_data:", ts_data.shape)
-        # for note_block in note_data:
-        #     print(note_block.shape)
-        # 在这里添加训练代码
-        # print("--------------------START---------------------------")
-        # print("names:", name)
-        # print("demogras:", demogra[:2])
-        # print("ts_data.shape:", ts_data.shape)
-        # print("ts_data:", ts_data[:2])
-        # print("ts_tt.shape:", ts_tt.shape)
-        # print("ts_tt:", ts_tt)
-        # print("ts_tt.expand:", ts_tt.unsqueeze(2).expand(-1, -1, 17)[:2, :10])
-        # print("ts_mask.shape:", ts_mask.shape)
-        # print("ts_mask:", ts_mask[:2, :10])
-        # print("ts_tau.shape:", ts_tau.shape)
-        # print("ts_tau:", ts_tau[:2, :10])
-        #
-        # print("note_data:", note_data[:2, :2])
-        # print("note_attention mask:", note_attention_mask[:2, :2])
-        # print("note_token_type:", note_token_type[:2, :2])
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt[:2])
-        # print("note_tau.shape:", note_tau.shape)
-        # print("note_tau:", note_tau[:2])
-        # print("note_mask.shape:", note_mask.shape)
-        # print("note_mask:", note_mask[:2])

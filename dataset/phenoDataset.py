@@ -53,10 +53,6 @@ class Pheno24Dataset(Dataset):
         demogra = self.now_data['demographics']
         demogra = torch.tensor(demogra).to(self.device)
 
-        # # 1. 选取48小时的窗口【时间序列48小时；文本72小时, 最后时刻对齐】
-        # ts_data, ts_mask, ts_tt, ts_tau, ts_len, start_time, end_time = self.cut_ts_window(48)
-        # note_data, note_tt, note_tau = self.cut_note_window(end_time - 72, start_time, end_time)
-        # 1. 读取数据
         ts_data = torch.tensor(self.now_data['ts_data']).float()
         ts_mask = torch.tensor(self.now_data['ts_mask']).float()
         ts_tt = torch.tensor(self.now_data['ts_tt']).float()
@@ -66,53 +62,23 @@ class Pheno24Dataset(Dataset):
         note_tau = self.now_data['note_tau']
         label = torch.tensor(self.now_data['pheno_label']).float()
 
-        # print("ts_tt:", ts_tt)
-        # print("note_tt:", note_tt)
-
-        # print("ts_data.shape:", ts_data.shape)
-        # print("ts_mask.shape:", ts_mask.shape)
-        # print("ts_tt.shape:", ts_tt.shape)
-        # print("ts_tt:", ts_tt)
-        # print("ts_tau.shape:", ts_tau.shape)
-        #
-        # print("note_data.shape:", len(note_data))
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt)
-        # print("note_tau:", note_tau)
-
-        # 2. 若时间序列长度大于ts_max_len，则截取一下最后的时刻
         if ts_data.shape[0] > self.ts_max_len:
             ts_data, ts_mask, ts_tt, ts_tau = self.cut_ts_data(ts_data, ts_mask, ts_tt, ts_tau)
 
-        # 3. 选取最后note_num段note
         note_data, note_tt, note_tau, note_mask = self.choose_note(note_data, note_tt, note_tau)
 
-        # print("---------2-----------")
-        # print("note_data.shape:", len(note_data))
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt)
-        # print("note_tau:", note_tau)
-        # print("note_mask:", note_mask)
-
-        # 3. 将note补0-->tensor
         note_data = pad_sequence(note_data, batch_first=True, padding_value=self.pad).to(self.device)
-        # [5, maxlen] --> [maxlen, 5]
         note_data = note_data.transpose(1, 0)
         note_tt = torch.tensor(note_tt).float()
         note_tau = torch.tensor(note_tau).float()
-        # print("---------3-----------")
-        # print("note_data.shape:", note_data.shape)
 
-        # 5. query tt
         query_tt = torch.arange(0, 25, 1).float()
 
-        # 6. impute query ts data
         query_ts_data, query_ts_mask = self.impute_ts_data(query_tt, ts_data, ts_mask, ts_tt)
 
         return name, demogra, ts_data, ts_tt, ts_mask, ts_tau, note_data, note_tt, note_mask, note_tau, label, query_tt, query_ts_data, query_ts_mask, self.pad
 
     def cut_ts_data(self, ts_data, ts_mask, ts_tt, ts_tau):
-        # 截取
         ts_data = ts_data[-self.ts_max_len:]
         ts_mask = ts_mask[-self.ts_max_len:]
         ts_tt = ts_tt[-self.ts_max_len:]
@@ -120,7 +86,6 @@ class Pheno24Dataset(Dataset):
         return ts_data, ts_mask, ts_tt, ts_tau
 
     def choose_note(self, note_data, note_tt, note_tau):
-        # 选取note_num段最后；若不够note_num段，则需要补充
         length = self.note_num
         note_len = len(note_data)
         note_mask = torch.ones(length)
@@ -139,12 +104,10 @@ class Pheno24Dataset(Dataset):
         return note_data, note_tt, note_tau, note_mask
 
     def impute_ts_data(self, query_ts_tt, ts_data, ts_mask, ts_tt):
-        # 1. 拆成离散型和连续型的
         continue_data = ts_data[:, :self.continue_dim]
 
         continue_data_mask = ts_mask[:, :self.continue_dim]
 
-        # 2. 分别进行插值
         # continue date
         if self.conti_impute_type == "linear":
             query_continue_data_plus, query_ts_dt_plus, query_continue_mask_plus = impute_ts(query_ts_tt, continue_data,
@@ -210,12 +173,7 @@ def pheno_collate_fn(batch):
     pad_list = list(pads)
     pad = pad_list[0]
 
-    # 转换为列表
     names = list(names)  # list
-    # note_datas = list(note_datas)
-    # note_tts = list(note_tts)
-    # note_masks = list(note_masks)
-    # note_taus = list(note_taus)
 
     demogras = torch.stack(demogras)  # torch
     device = demogras.device
@@ -226,17 +184,13 @@ def pheno_collate_fn(batch):
 
     note_datas = list(note_datas)
     note_datas = pad_sequence(note_datas, batch_first=True, padding_value=pad).to(device)  # torch
-    # print("note_datas.shape:", note_datas.shape)
     note_datas = note_datas.transpose(2, 1)
-    # print("note_datas.shape:", note_datas.shape)
 
     note_attention_mask = torch.zeros_like(note_datas)
     note_attention_mask[note_datas != pad] = 1
     note_attention_mask = note_attention_mask.to(device)
-    # print("note_datas_attention_mask.shape:", note_datas_attention_mask)
 
     note_token_type = torch.zeros_like(note_datas).to(device)
-    # print("note token type:", note_token_type.shape)
 
     note_tts = torch.stack(note_tts).to(device)
     note_taus = torch.stack(note_taus).to(device)
@@ -247,10 +201,6 @@ def pheno_collate_fn(batch):
     query_ts_data = torch.stack(query_ts_data).to(device)
     query_ts_mask = torch.stack(query_ts_mask).to(device)
 
-    # 1. note转成batch
-    # 2. 对齐ts数据
-    # 3. 转成tensor.to（device）
-
     return names, demogras, ts_datas, ts_tts, ts_masks, ts_taus, note_datas, note_attention_mask, note_token_type, note_tts, note_taus, note_masks, query_tt, query_ts_data, query_ts_mask, label
 
 
@@ -258,40 +208,16 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    seed_value = 68  # 可以替换为任何你想要的整数种子值
+    seed_value = 68
     random.seed(seed_value)
 
-    # 创建CustomDataset实例
     dataset = Pheno24Dataset(data_path='../data/24pheno/train_24pheno_0.5.pkl', device=device, note_length=512, note_num=10, bert="bioLongformer")
 
-    # 创建DataLoader实例，并使用自定义的collate_fn函数
     dataloader = DataLoader(dataset, batch_size=16, shuffle=True, collate_fn=pheno_collate_fn)
 
-    # 使用DataLoader迭代数据
     for batch in dataloader:
         name, demogra, ts_data, ts_tt, ts_mask, ts_tau, note_data, note_attention_mask, note_token_type, note_tt, note_tau, note_mask, label = batch
         print("--------------------START---------------------------")
-        # print("names:", name)
-        # print("demogras:", demogra[:2])
-        # print("ts_data.shape:", ts_data.shape)
-        # print("ts_data:", ts_data[:2])
-        # print("ts_tt.shape:", ts_tt.shape)
-        # print("ts_tt:", ts_tt)
-        # print("ts_tt.expand:", ts_tt.unsqueeze(2).expand(-1, -1, 17)[:2, :10])
-        # print("ts_mask.shape:", ts_mask.shape)
-        # print("ts_mask:", ts_mask[:2, :10])
-        # print("ts_tau.shape:", ts_tau.shape)
-        # print("ts_tau:", ts_tau[:2, :10])
-        #
-        # print("note_data:", note_data[:2, :2])
-        # print("note_attention mask:", note_attention_mask[:2, :2])
-        # print("note_token_type:", note_token_type[:2, :2])
-        # print("note_tt.shape:", note_tt.shape)
-        # print("note_tt:", note_tt[:2])
-        # print("note_tau.shape:", note_tau.shape)
-        # print("note_tau:", note_tau[:2])
-        # print("note_mask.shape:", note_mask.shape)
-        # print("note_mask:", note_mask[:2])
 
         print("label:", label.shape)
         print("label:", label)

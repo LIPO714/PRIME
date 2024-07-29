@@ -56,16 +56,12 @@ def analysis_24pheno_data():
 
             label = torch.tensor(now_data['pheno_label']).float()
 
-            # 序列长度
             ts_len_list.append(ts_data.shape[0])
-            # 有效值比例
             ts_valid.append(torch.sum(ts_mask))
             ts_invalid.append(ts_data.shape[0]*ts_data.shape[1] - torch.sum(ts_mask))
 
-            # 住院时长
             ts_tt_list.append(ts_tt[-1])
 
-            # 文本数
             note_num_list.append(len(note_data))
 
 
@@ -134,19 +130,14 @@ def analysis_48ihm_data():
 
             label = torch.tensor(now_data['48ihm_label']).float()
 
-            # 序列长度
             ts_len_list.append(ts_data.shape[0])
-            # 有效值比例
             ts_valid.append(torch.sum(ts_mask))
             ts_invalid.append(ts_data.shape[0]*ts_data.shape[1] - torch.sum(ts_mask))
 
-            # 住院时长
             ts_tt_list.append(ts_tt[-1])
 
-            # 文本数
             note_num_list.append(len(note_data))
 
-            # 死亡数量
             if label != 0:
                 dead_num += 1
 
@@ -210,16 +201,11 @@ def analysis_pretrain_data():
         note_tt = now_data['note_tt']
         note_tau = now_data['note_tau']
 
-        # 序列长度
         ts_len_list.append(ts_data.shape[0])
-        # 有效值比例
         ts_valid.append(torch.sum(ts_mask))
         ts_invalid.append(ts_data.shape[0]*ts_data.shape[1] - torch.sum(ts_mask))
-
-        # 住院时长
         ts_tt_list.append(ts_tt[-1])
 
-        # 文本数
         note_num_list.append(len(note_data))
 
     print("age:", age_list)
