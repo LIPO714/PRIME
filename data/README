@@ -1,0 +1,30 @@
+# 1. Move "train_ts_note_data.pkl" and "test_ts_note_data.pkl" to this file.
+
+# 2. The file tree should be:
+.
+├── 24pheno
+│   ├── test_24pheno_0.01.pkl
+│   ├── test_24pheno_0.1.pkl
+│   ├── test_24pheno_1.0.pkl
+│   ├── train_24pheno_0.01.pkl
+│   ├── train_24pheno_0.1.pkl
+│   ├── train_24pheno_1.0.pkl
+│   ├── val_24pheno_0.01.pkl
+│   ├── val_24pheno_0.1.pkl
+│   └── val_24pheno_1.0.pkl
+├── 48ihm
+│   ├── test_48ihm_0.01.pkl
+│   ├── test_48ihm_0.1.pkl
+│   ├── test_48ihm_1.0.pkl
+│   ├── train_48ihm_0.01.pkl
+│   ├── train_48ihm_0.1.pkl
+│   ├── train_48ihm_1.0.pkl
+│   ├── val_48ihm_0.01.pkl
+│   ├── val_48ihm_0.1.pkl
+│   └── val_48ihm_1.0.pkl
+├── channel_std.py
+├── metadata.json
+├── pretrain.pkl
+├── test_ts_note_data.pkl
+└── train_ts_note_data.pkl
+
