@@ -101,7 +101,7 @@ if __name__ == '__main__':
     train_data_path = '../data/train_ts_note_data.pkl'
     test_data_path = '../data/test_ts_note_data.pkl'
     cut_time = '48'
-    percent = 0.01
+    percent = 0.01  # 0.1 1.0
     train_val_percent = 0.8  # 0.8
     out_train_data_path = '../data/48ihm/train_48ihm_'+str(percent)+'.pkl'
     out_val_data_path = '../data/48ihm/val_48ihm_'+str(percent)+'.pkl'
