@@ -1,4 +1,4 @@
-# Pretraining for Irregular Multimodal Healthcare Data
+# PRIME: Pretrained Representation Learning Model for Irregular Multimodal Electronic Health Records
 
 This repository contains the PyTorch implementation for the paper ”PRIME: Pretrained Representation Learning Model for Irregular Multimodal Electronic Health Records“.
 
