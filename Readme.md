@@ -1,14 +1,14 @@
 # Pretraining for Irregular Multimodal Healthcare Data
 
-This repository contains the PyTorch implementation for the paper ”Pretraining for Irregular Multimodal Healthcare Data“.
+This repository contains the PyTorch implementation for the paper ”PRIME: Pretrained Representation Learning Model for Irregular Multimodal Electronic Health Records“.
 
 ### Environment
 
 Run the following commands to create a conda environment:
 
 ```
-conda create -n P4IHM python=3.7.16
-source activate P4IHM
+conda create -n PRIME python=3.7.16
+source activate PRIME
 pip install -r requirements.txt
 ```
 
