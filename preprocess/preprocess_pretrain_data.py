@@ -136,7 +136,7 @@ def preprocess(data, cut_time, all_data, age_list, tokenizer, tokenizer_clinicbe
 
 if __name__ == '__main__':
     train_data_path = '../data/train_ts_note_data.pkl'
-    test_data_path = '../data/test_ts_note_data.pkl'
+    # test_data_path = '../data/test_ts_note_data.pkl'
     cut_time = '48'  # None  # '48'
     if cut_time is not None:
         out_data_path = './data/pretrain_' + cut_time + '.pkl'
@@ -144,7 +144,7 @@ if __name__ == '__main__':
         out_data_path = '../data/pretrain.pkl'
 
     train_data = read_pkl(train_data_path)
-    test_data = read_pkl(test_data_path)
+    # test_data = read_pkl(test_data_path)
 
     tokenizer = AutoTokenizer.from_pretrained('../Clinical-Longformer')  # padding用的是1
     tokenizer_clinicbert = AutoTokenizer.from_pretrained("../Bio_ClinicalBERT")
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     age_list = []
 
     all_data, age_list = preprocess(train_data, cut_time, all_data, age_list, tokenizer, tokenizer_clinicbert)
-    all_data, age_list = preprocess(test_data, cut_time, all_data, age_list, tokenizer, tokenizer_clinicbert)
+    # all_data, age_list = preprocess(test_data, cut_time, all_data, age_list, tokenizer, tokenizer_clinicbert)
 
     age_list = np.array(age_list)
     # age_min = np.min(age_list)
