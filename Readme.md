@@ -125,3 +125,27 @@ from all_exps.downstream_48IHM_args_config import parse_args  # 48IHM
 
 `Clinical-Longformer` stores Bert models.
 `all_exps` contains configuration files.
+
+### Loss
+
+The loss for the pretraining denotes as $\mathcal{L}^p$, including three parts: loss of contrastive-based cross-modal learning, $\mathcal{L}^c$; the reconstruction error(MSE) of MITS, $\mathcal{L}^\mathrm{r}\_\mathrm{TS}$; the reconstruction error(Cosine similarity) of clinical notes, $\mathcal{L}^\mathrm{r}\_\mathrm{Note}$.
+
+The loss curves in pretraining phase are given as follows:
+
+**Loss function, $\mathcal{L}^p$**
+
+<img src=".\loss\loss.png">
+
+**Loss of contrastive-based cross-modal learning, $\mathcal{L}^c$**
+
+<img src=".\loss\contrastive.png">
+
+**The reconstruction error(MSE) of MITS, $\mathcal{L}^\mathrm{r}\_\mathrm{TS}$**
+
+<img src=".\loss\mse.png">
+
+**The reconstruction error(Cosine similarity) of clinical notes, $\mathcal{L}^\mathrm{r}\_\mathrm{Note}$**
+
+<img src=".\loss\cos.png">
+
+We observed that $\mathcal{L}^c$ and $\mathcal{L}^\mathrm{r}\_\mathrm{Note}$ decreased relatively smoothly, while $\mathcal{L}^\mathrm{r}\_\mathrm{TS}$ exhibited some oscillations but also showed a downward trend. Through experiments, we found that selecting the steps when all three loss function reached their local minima resulted in the optimal model performance on downstream tasks. Ultimately, we saved the parameters near the lowest point of the loss function for subsequent tasks.
