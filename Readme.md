@@ -2,6 +2,8 @@
 
 This repository contains the PyTorch implementation for the paper ”PRIME: Pretraining Model for Patient Representation Learning Using Irregular Multimodal Electronic Health Records“.
 
+<img src="framework.png">
+
 ### Environment
 
 Run the following commands to create a conda environment:
